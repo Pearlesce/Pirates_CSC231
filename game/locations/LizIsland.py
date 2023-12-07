@@ -2,7 +2,7 @@ import game.location as location
 import game.config as config
 from game.display import announce
 from game.events import *
-from game.items import item
+from game.items import Item
 import random
 from game import event
 from game.combat import Monster
@@ -51,17 +51,14 @@ class BeachWithShip(location.SubLocation):
     def process_verb(self, verb, cmd_list, nouns):
         if (verb == "north"):
             config.the_player.next_loc = self.main_location.locations["HillWithSign"]
-            config.the_player.go = True
         if (verb == "south"):
             announce("You return to your ship.")
             config.the_player.next_loc = config.the_player.ship
             config.the_player.visiting = False
         if (verb == "west"):
             config.the_player.next_loc = self.main_location.locations["WestBeach"]
-            config.the_player.go = True
         if (verb == "east"):
             config.the_player.next_loc = self.main_location.locations["EastBeach"]
-            config.the_player.go = True
     
     def enter(self):
         announce("You head ashore. There is a hill with a signpost to the north.")
@@ -88,22 +85,16 @@ class Signpost(location.SubLocation):
     def process_verb(self, verb, cmd_list, nouns):
         if (verb == "north"):
             config.the_player.next_loc = self.main_location.locations["ForestEdge"]
-            config.the_player.go = True
         if (verb == "south"):
             config.the_player.next_loc = self.main_location.locations["SouthBeach"]
-            config.the_player.go = True
         if (verb == "west"):
             config.the_player.next_loc = self.main_location.locations["WestBeach"]
-            config.the_player.go = True
         if (verb == "east"):
             config.the_player.next_loc = self.main_location.locations["EastBeach"]
-            config.the_player.go = True
         if (verb == "northeast"):
             config.the_player.next_loc = self.main_location.locations["Cliff"]
-            config.the_player.go = True
         if (verb == "northwest"):
             config.the_player.next_loc = self.main_location.locations["RuinedCastle"]
-            config.the_player.go = True
         if (verb == "investigate"):
             self.HandleSignpost()
         
@@ -176,13 +167,10 @@ class WestBeach(location.SubLocation):
             self.HandleFish()
         if (verb == 'south'):
             config.the_player.next_loc = self.main_location.locations["SouthBeach"]
-            config.the_player.go = True
         if (verb == 'east'):
             config.the_player.next_loc = self.main_location.locations["HillWithSign"]
-            config.the_player.go = True
         if (verb == 'north'):
             config.the_player.next_loc = self.main_location.locations["RuinedCastle"]
-            config.the_player.go = True
 
     def HandleFish(self):
         announce("You've decided to fish! You take out your fishing rod and start fishing.")
@@ -209,7 +197,7 @@ class WestBeach(location.SubLocation):
             sashimi = random.randrange(1, 5)
             self.food = sashimi
 
-class Bento(item):
+class Bento(Item):
     def __init__(self):
         super().__init__("bento", 0)
 
@@ -217,10 +205,10 @@ class EastBeach(location.SubLocation):
     def __init__(self, mainLocation):
         super().__init__(mainLocation)
         self.name = "EastBeach"
-        self.verbs = ["south"]
-        self.verbs = ["west"]
-        self.verbs = ["north"]
-        self.verbs = ["fish"]
+        self.verbs["south"] = self
+        self.verbs["west"] = self
+        self.verbs["north"] = self
+        self.verbs["fish"] = self
 
         self.rope_ladder = False
 
@@ -235,54 +223,84 @@ class EastBeach(location.SubLocation):
     def process_verb(self, verb, cmd_list, nouns):
         if(verb == "south"):
             config.the_player.next_loc = self.main_location.locations["SouthBeach"]
-            config.the_player.go = True
         if (verb == "west"):
-            config.the_player.next_loc = self.main_location.locations["Signpost"]
-            config.the_player.go = True
+            config.the_player.next_loc = self.main_location.locations["HillWithSign"]
         if (verb == "north"):
             #check if rope_ladder is true
             if (self.rope_ladder == True):
                 config.the_player.next_loc = self.main_location.locations["Cliff"]
-                config.the_player.go = True
             else:
                 announce("You cannot climb the cliff yet.")
         if (verb == "fish"):
             self.HandleFish()
 
-    def HandleFish(self): #REPEAT CODE! USE AS A MODULE IMPORT
+    def HandleFish(self):
         announce("You've decided to fish! You take out your fishing rod and start fishing.")
-        pass
+        #pass
         
-        """
-        1/10 large fish (15-30 food)
-        1/10 shark (random pirate gets hurt)
-        8/10 normal fish (1-5 food)
-        """
+        fish = random.randrange(1, 100)
+        if (fish == 1):
+            #shark bite
+            announce("You have pulled a shark ashore!")
+            victim = random.choice(config.the_player.get_pirates())
+            hp = victim.get_health(victim)
+                #check for health of pirate
+            if (victim.inflict_damage (self, hp, "Was bit by a shark")):
+                self.result["message"] = ".. " + victim.get_name() + " was eaten by a shark!"
+            pass
+        elif (fish > 90):
+            announce("You've caught a whopper! Time to celebrate!")
+            sushi = random.randrange(15, 30)
+            self.food = sushi
+        elif (fish == 100):
+            announce("What's this? A bento box full of food? Huh...")
+            config.the_player.add_to_inventory([Bento()])
+        else:
+            announce("You call that a fish? Well, at least it's something for the larder.")
+            sashimi = random.randrange(1, 5)
+            self.food = sashimi
 
 
 class ForestEdge(location.SubLocation):
     def __init__(self, mainLocation):
         super().__init__(mainLocation)
         self.name = "ForestEdge"
-        self.verbs = ["south"]
-        self.verbs = ["east"]
-        self.verbs = ["west"]
-        self.verbs = ["north"]
-        self.verbs = ["investigate"]
+        self.verbs["south"] = self
+        self.verbs["east"] = self
+        self.verbs["west"] = self
+        self.verbs["north"] = self
+        self.verbs["investigate"] = self
     
     def enter(self):
-        announce("You see a forest surrounded by a thick hedge in front of you.")
-        announce("There is a sign next to an open gate in the hedge. Do you wish to investigate it?")
+        announce("You see a forest surrounded by a thick hedge in front of you to the north. To the west there is some castle ruins. To the east is a cliff.")
+        announce("There is a sign next to an open gate in the hedge.")
+
+
+    def process_verb(self, verb, cmd_list, nouns):
+        if(verb == "south"):
+            config.the_player.next_loc = self.main_location.locations["HillWithSign"]
+        if(verb == "west"):
+            config.the_player.next_loc = self.main_location.locations["RuinedCastle"]
+        if(verb == "east"):
+            config.the_player.next_loc = self.main_location.locations["Cliff"]
+        if(verb == "north"):
+            config.the_player.next_loc = self.main_location.locations["ForestMaze"]
+        if(verb == "investigate"):
+            self.HandleForestSign()
+
+    def HandleForestSign(self):
+        self.event_chance = 100
+        self.events.append(Dryads())
 
 class ForestMaze(location.SubLocation):
     def __init__(self, mainLocation):
         super().__init__(mainLocation)
         self.name = "ForestMaze"
-        self.verbs = ["forward"]
-        self.verbs = ["south"]
-        self.verbs = ["left"]
-        self.verbs = ["right"]
-        self.verbs = ["investigate"]
+        self.verbs["forward"] = self
+        self.verbs["south"] = self
+        self.verbs["left"] = self
+        self.verbs["right"] = self
+        self.verbs["investigate"] = self
     
     def enter(self):
         announce("You have entered the maze. You may continue forward or return south to exit the maze.\nThere is a crumpled note on the ground you can investigate.")
@@ -290,7 +308,6 @@ class ForestMaze(location.SubLocation):
     def process_verb(self, verb, cmd_list, nouns):
         if (verb == "south"):
             config.the_player.next_loc = self.main_location.locations["ForestEdge"]
-            config.the_player.go = True
         if (verb == "forward"):
             self.HandleMaze()
         if (verb == "investigate"):
@@ -314,6 +331,9 @@ class ForestMaze(location.SubLocation):
             if ("south" in choice.lower()):
                 config.the_player.next_loc = self.main_location.locations["ForestEdge"]
                 config.the_player.go = True
+        if(maze_count == 0):
+            config.the_player.next_loc = self.main_location.locations["Mountain"]
+            config.the_player.go = True
 
     def HandleMazeChance(self):
         chance = random.randint(1, 11)
@@ -380,7 +400,7 @@ class GiantLizard(Monster):
         attacks["poison"] = ["poison", random.randrange(10, 15), (5, 15)]    
         super().__init__("Giant Lizard", random.range(7, 21), attacks, 100 + random.randint(0, 26))
 
-class Sabre(item):
+class Sabre(Item):
     def __init__(self):
         super().__init__("sabre", 15)
         self.damage(15, 80)
@@ -388,7 +408,7 @@ class Sabre(item):
         self.verb = "slash"
         self.verb2 = "slashes"
 
-class LizardTail(item):
+class LizardTail(Item):
     def __init__(self):
         super().__init__("Lizard Club", 550)
         self.damage(20, 50)
@@ -396,7 +416,7 @@ class LizardTail(item):
         self.verb = "bash"
         self.verb2 = "bashes"
 
-class Pistol(item):
+class Pistol(Item):
     def __init__(self):
         super().__init__("pistol", 500)
         self.damage(20, 150)
@@ -406,7 +426,7 @@ class Pistol(item):
         self.verb = "shoot"
         self.verb2 = "shoots"
 
-class CoinPile(item):
+class CoinPile(Item):
     def __init__(self):
         super().__init__("coins", 6000)
 
@@ -414,11 +434,11 @@ class Cliff(location.SubLocation):
     def __init__(self, mainLocation):
         super().__init__(mainLocation)
         self.name = "Cliff"
-        self.verbs = ["west"]
-        self.verbs = ["southwest"]
-        self.verbs = ["investigate"]
-        self.verbs = ["rope"]
-        self.verbs = ["descend"]
+        self.verbs["west"] = self
+        self.verbs["southwest"] = self
+        self.verbs["investigate"] = self
+        self.verbs["rope"] = self
+        self.verbs["descend"] = self
 
         self.ladder = False
 
@@ -429,18 +449,18 @@ class Cliff(location.SubLocation):
 
     def process_verb(self, verb, cmd_list, nouns):
         if (verb == "west"):
-            config.the_player.next_loc = self.main_location.locations("ForestEdge")
-            config.the_player.go = True
+            config.the_player.next_loc = self.main_location.locations["ForestEdge"]
         if (verb == "southwest"):
-            config.the_player.next_loc = self.main_location.locations("Signpost")
-            config.the_player.go = True
+            config.the_player.next_loc = self.main_location.locations["HillWithSign"]
         if (verb == "rope"):
             self.RopeEvent()
         if (verb == "investigate"):
             self.HandleCliff()
         if (verb == "descend"):
-            config.the_player.next_loc = self.main_location.locations("EastBeach")
-            config.the_player.go = True
+            if (not self.ladder):
+                self.RopeEvent()
+            else:
+                config.the_player.next_loc = self.main_location.locations["EastBeach"]
 
     def RopeEvent(self):
         if (not self.ladder):
@@ -470,11 +490,9 @@ class Cliff(location.SubLocation):
             if (splat % 2 == 0):
                 announce("You decide to descend too quickly, causing one of your pirates to slip and fall to their death.")
                 c = random.choice(config.the_player.get_pirates())
-                #check for health of pirate
                 if (c.inflict_damage (self, "Slipped on the rope")):
                     self.result["message"] = ".. " + c.get_name() + " fell to their death!"
 
-                #add in code for a pirate's death
             else:
                 announce("Your crew has made it safely down, but the rope is too slippery to return the way you came safely.")
 
@@ -489,28 +507,31 @@ class Cliff(location.SubLocation):
             self.event_chance = 60
             self.events.append(seagull.Seagull())
             announce("Upon closer inspection, you see an overflowing pouch of gold coins, a statuette of a dragon, and some food.")
-            choice2 = input("What to you wish to grab?")
-            if ("coins" in choice2.lower()):
-                self.events_chance = 100
-                self.events.append(seagull.Seagull())
-                config.the_player.add_to_inventory([CoinPile()])
-            if ("statuette" in choice2.lower()):
-                self.events_chance = 90
-                self.events.append(GiantLizardEvent())
-                config.the_player.add_to_inventory([Statuette()])
-            if ("food" in choice2.lower()):
-                self.food = 100
-                config.the_player.add_to_inventory([Pizza()])
+        else:
+            announce("You turn away from the debris.")
+        
+        choice2 = input("What to you wish to grab? The coins, food, or statuette?")
+        if ("coins" in choice2.lower()):
+            self.events_chance = 100
+            self.events.append(seagull.Seagull())
+            config.the_player.add_to_inventory([CoinPile()])
+        if ("statuette" in choice2.lower()):
+            self.events_chance = 90
+            self.events.append(GiantLizardEvent())
+            config.the_player.add_to_inventory([Statuette()])
+        if ("food" in choice2.lower()):
+            self.food = 100
+            config.the_player.add_to_inventory([Pizza()])
 
-class Statuette(item):
+class Statuette(Item):
     def __init__(self):
         super().__init__("Dragon Statuette", 15000)
 
-class Pizza(item):
+class Pizza(Item):
     def __init__(self):
         super().__init__("pizza", 0)
 
-class Taco(item):
+class Taco(Item):
     def __init__(self):
         super().__init__("taco", 0)
 
@@ -531,15 +552,11 @@ class RuinedCastle(location.SubLocation):
             self.HandleCastleDoor()
         if (verb == "south"):
             config.the_player.next_loc = self.main_location.locations["WestBeach"]
-            config.the_player.go = True
         if (verb == "southeast"):
             config.the_player.next_loc = self.main_location.locations["HillWithSign"]
-            config.the_player.go = True
         if (verb == "east"):
             config.the_player.next_loc = self.main_location.locations["ForestEdge"]
-            config.the_player.go = True
         if (verb == "enter"):
-            #announce("Castle Puzzle Here")
             self.HandleCastlePuzzle()
     
     def enter(self):
@@ -560,27 +577,49 @@ class RuinedCastle(location.SubLocation):
             announce("You turn away from the door.")
 
     def HandleCastlePuzzle(self):
-        #Tower of Hanoi Puzzle, prize is a cake, worth 100 food
-        #pass
+        
         if (not self.puzzle_finished):
-            announce("You spot a large table with three pegs, equally spaced apart.\nThe peg on the left has rings on it, with the largest on "+
+            announce("You spot a large stone chest with three pegs on it, equally spaced apart.\nThe peg on the left has rings on it, with the largest on "+
                     "the bottom and gradually getting " +
-                    "smaller, with the smallest on top.\nThere is a note next to the puzzle. You can read the note or investigate the pegs")
-            if(input == "read"):
+                    "smaller, with the smallest on top.\nThere is a note next to the puzzle. You can read the note, investigate the pegs, or touch the pegs.")
+            choice = input("What is your choice?")
+            if(choice.lower() == "read"):
                 print("This puzzle is meant to reveal the hidden locations of the Deity's food. To complete the puzzle, you must move the discs to the rightmost peg." +
                     "\nThere are three rules to follow! \n\tOne: Only one disc, the top disc, can be moved at a time. \n\tTwo: When moving the top disc, you can only " +
-                    "place the disc on the top of any stack, even when there are no discs on the peg.\n\tThree: Larger discs cannot be placed on smaller discs."+
-                    "\nDo you wish to play the game?")
-            if(input == "investigate"):
+                    "place the disc on the top of any stack, even when there are no discs on the peg.\n\tThree: Larger discs cannot be placed on smaller discs.")
+            if(choice.lower() == "investigate"):
                 print("You see that the discs on the pegs can be moved")
-            while(input == "play"):
-                #Tower of Hanoi puzzle
-
-                pass
+            if(choice.lower() == "touch"):
+                print("You see that most of the discs have been moved already. However, on the top disc, there is a clear line of dust, showing that there was once one" +
+                      "\nsmaller disc on top.")
+                find = input("Do you wish to look around for the smallest disc?")
+                if (find.lower() == "yes"):
+                    print("You look around for a while, and notice a torn bit of brightly colored clothing in the broken window to the west of the puzzle. You could not see"+
+                          "the window from the path you originally took.\nThere is also what looks like fresh blood on the broken window.")
+                    look = input("Do you wish to take a closer look at the window.")
+                    if (look.lower() == "yes"):
+                        print("That is defiinitely fresh blood on the window. The missing disc is on the window sill, seemingly forgotten in haste.")
+                        announce("You have found the final piece of the puzzle!")
+                        print("Returning to the puzzle, you may place the final piece on the peg.")
+                        puzzle = input("Do you wish to place the final piece on the puzzle?")
+                        if (puzzle.lower() == "yes"):
+                            announce("Upon fitting the final piece of the puzzle in place, the lid of the stone chest unlocks an moves aside, revealing a large cake and "+
+                                     "a stone map. This stone map reveals the locations of the Deity's favorite foods. One can be fished for, another is on another island, "+
+                                     "and the final one was stolen by seagulls residing on the cliffs nearby.")
+                            config.the_player.add_to_inventory([Cake()])
+                            self.food = 100
+                            self.puzzle_finished = True
+                        else:
+                            announce("You turn away from the Puzzle.")
+                    else:
+                        announce("You turn away from the window.")
+                
         else:
             announce("You know of the locations of the Deity's food. One can be obtained by fishing, one is on another island, and one was stolen by Seagulls on the cliff")
             
-                        
+class Cake(Item):
+    def __init__(self):
+        super().__init__("cake", 0)                        
 
 
 class Mountain(location.SubLocation):
@@ -591,17 +630,15 @@ class Mountain(location.SubLocation):
         self.verbs["south"] = self
         self.verbs["north"] = self
 
-        simon_gone = False
+        self.simon_gone = False
 
     def process_verb(self, verb, cmd_list, nouns):
         if(verb == "speak"):
             self.HandleSimon()
         if(verb == "south"):
             config.the_player.next_loc = self.main_location.locations["ForestEdge"]
-            config.the_player.go = True
         if(verb == "north"):
             config.the_player.next_loc = self.main_location.locations["Cave"]
-            config.the_player.go = True
     
     def enter(self):
         announce("You arrive at the mountain. There is a path winding up the mountain to a cave in the north. You can return to the Forest Edge to the south")
@@ -615,21 +652,21 @@ class Mountain(location.SubLocation):
             print("Hello! You look like a mighty fine group of pirates! I'm sure you know about the Deity on the Island! No?" +
                   "\nWell, the Deity is said to give Riches and Wishes to those who provide the appropriate snack-rifice! I have one such... item that the Deity is"+
                   "\nknown to enjoy above ALL ELSE!")
-            if (not self.puzzle_finished):
+            if (not Cake in config.the_player.inventory):
                 print("I have the item that you cannot find on this island. YES! One of them cannot be found on this island!"+
                       "\nFor a small trade, I can give it to you! I want a Dragon statuette in return! They can be found carried by the giant lizards that roam the island.")
             else:
                 print("Well, I'm... glad you found the list of... treats the Deity enjoys... I have the item that is NOT found on the Island!"+
                       "\nFor a small trade, I can give it you! I want a Dragon statuette! They can be found on the Giant Lizards that roam the island.")
-            if (Statuette in self.items[]):
+            if (Statuette in config.the_player.inventory):
                 choice = input("Do you wish to give the Dragon Statuette?")
                 if (choice == "yes"):
                     print("Good Choice! Here you go!")
                     config.the_player.add_to_inventory([MysteryMeat()])
                     #takes Dragon Statuette out of Inventory
-                    for i in self.items:
-                        if self.items[i].name == Statuette:
-                            found = self.items.pop(i)
+                    for i in config.the_player.inventory:
+                        if config.the_player.inventory[i].name == Statuette:
+                            found = config.the_player.inventory.pop(i)
                             config.the_player.inventory.append(found)
                             config.the_player.inventory.sort()
                     announce("As soon as you look away, a large gust of wind whips through the area. Once the dust settles, you see the tent and Simon are gone.")
@@ -637,8 +674,6 @@ class Mountain(location.SubLocation):
                 else:
                     print("I'll be here when you change your mind.")   
         else:
-            #dryad attack
-            pass
             announce("There are a group of dryads where Simon once was. They seem uninterested in you. There is enough room to pass them.")
             choice = input("Do you wish to pass or attack?")
             if (choice == "attack"):
@@ -693,7 +728,7 @@ class Dryad(Monster):
         super().__init__("Giant Lizard", random.range(10, 41), attacks, 100 + random.randint(25, 51))
 
 
-class Whip(item):
+class Whip(Item):
     def __init__(self):
         super().__init__("dryad whip", 20)
         self.damage(25, 50)
@@ -702,7 +737,7 @@ class Whip(item):
         self.verb2 = "whips"
 
 
-class MysteryMeat(item):
+class MysteryMeat(Item):
     def __init__(self):
         super().__init__("mystery meat", 0)
 
@@ -713,6 +748,8 @@ class Cave(location.SubLocation):
         self.verbs["investigate"] = self
         self.verbs["south"] = self
 
+        self.cave_puzzle = False
+
         self.event_chance = 25
         self.events.append(GiantLizardEvent())
 
@@ -721,11 +758,56 @@ class Cave(location.SubLocation):
             self.HandleCavePuzzle()
         if(verb == "south"):
             config.the_player.next_loc = self.main_location.locations["Mountain"]
-            config.the_player.go = True
     
     def enter(self):
-        announce("You finally arrive at the Cave. You see it is blocked off by a shrine. There is a sign next to the shrine that you can investigate."+
+        announce("You finally arrive at the Cave. You see it is blocked off by a shrine, shaped like a dragon. There is a sign next to the shrine that you can investigate."+
                  "\nYou may go back down the mountain path to the south.")
         
     def HandleCavePuzzle(self):
-        pass
+        if (not self.cave_puzzle):
+            announce("The Shrine glows and smoke billows from the nostrils of the dragon statue. The sign next to it reads:")
+            announce("Hark! Bestow upon the dragon its cherished victuals! Bento, pizza, and tacos doth appease the beast's palate mightily!"+
+                     "\nChoose her favored morsel, and the boon shalt be thine! Beware! Should ye offer the wrong item, a curse shall befall thee!"+
+                     "\nKnow thee this: the dragon's enchantment can be invoked but once within a day's passing.")
+            drop = input("which item do you wish to give to the shrine? A - pizza, B - bento, C - taco, or D - mystery meat?")
+            if (drop.lower() == "a" and Pizza in self.items):
+                announce("The Shrine glows gently as the item you placed falls into a hidden panel in the shrine base. A small purr echoes from the mouth of the statue.")
+                announce("A soft glow surrounds one of the pirates as you see their wounds heal, any illness subside, and a glint of luck appear in their eye.")
+                c = random.choice(config.the_player.get_pirates())
+                c.lucky = True
+                c.sick = False
+                c.health = c.max_health
+                announce("This seems to have pleased the Deity, but you have a sense that there could be more the Deity can give...")
+            elif(drop.lower() == "b" and Bento in self.items):
+                announce("The Shrine glows gently as the item you placed falls into a hidden panel in the shrine base. Nothing else happens for a moment.")
+                announce("Then, each pirate feels as if their wounds and any illnesses heal.")
+                for i in config.the_player.get_pirates():
+                    i.sick = False
+                    i.health = i.max_health
+                announce("This seems to have pleased the Deity, but you have a sense that there could be more the Deity can give...")
+            elif(drop.lower() == "d" and MysteryMeat in self.items):
+                announce("The item you placed drops into a hidden panel in the shrine's base. A sickly green glow appears in the nostrils of the statue, followed"+
+                         "\nby a large plume of foul-smelling green gas, along with retching sounds from the Shrine. The green gas envelops the pirates, and each one"+
+                         "\nfeels ill and any luck they had is now lost.")
+                for i in config.the_player.get_pirates():
+                    i.lucky = False
+                    i.sick = True
+                announce("You seem to have made the Deity... ill. I'd advise you return tomorrow, with the CORRECT food item....")
+            elif(drop.lower() == "c" and Taco in self.items):
+                announce("The item drops into a hidden panel in the shrine's base. A LARGE and HAPPY squeaking emanates from the Shrine. A large billowing cloud of " +
+                         "\ngolden dust flies from the nose of the Dragon Shrine, and upon landing on your crew, heals all wounds, illnesses, and each one feels as if" +
+                         "blessed by Lady Luck herself!")
+                for i in config.the_player.get_pirates():
+                    i.lucky = True
+                    i.sick = False
+                    i.health = i.max_health
+                announce("The Shrine shifts to the side, and a small Golden Dragon appears from around the Shrine. It happily hops onto one of your crewmate's shoulders,"+
+                         "\ncuddles the crewmate, then hops down and transforms into a Pirate.")
+                announce("Aurelia has joined your crew!")
+                config.the_player.pirates.append("Aurelia")
+                self.cave_puzzle = True
+            else:
+                announce("You don't seem to have the item yet...")
+        else:
+            announce("The Shrine to the Deity lies dormant.")
+        
