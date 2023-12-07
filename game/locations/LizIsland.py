@@ -136,6 +136,10 @@ class Signpost(location.SubLocation):
         for i in config.the_player.get_pirates():
             announce(f"{i} is inspired!")
             i.health = i.max_health
+        rand = random.randint(1, 100)
+        if (rand == 10):
+            announce("Huh... thats odd. A Taco fell out of the shrine.")
+            config.the_player.add_to_inventory([Taco()])
         self.shrineUsed = True
 
     def GetRiddleAndAnswer(self):
